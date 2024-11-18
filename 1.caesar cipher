@@ -1,0 +1,47 @@
+#include <stdio.h>
+#include <string.h>
+void encrypt(char* text, int k) {
+    for (int i = 0; text[i] != '\0'; i++) {
+        char ch = text[i];
+        if (ch >= 'A' && ch <= 'Z') {
+            ch = (ch - 'A' + k) % 26 + 'A';
+        }
+        else if (ch >= 'a' && ch <= 'z') {
+            ch = (ch - 'a' + k) % 26 + 'a';
+        }
+        text[i] = ch;
+    }
+}
+void decrypt(char* text, int k) {
+    for (int i = 0; text[i] != '\0'; i++) {
+        char ch = text[i];
+        if (ch >= 'A' && ch <= 'Z') {
+            ch = (ch - 'A' - k + 26) % 26 + 'A';  
+        }
+        else if (ch >= 'a' && ch <= 'z') {
+            ch = (ch - 'a' - k + 26) % 26 + 'a';  
+        }
+        text[i] = ch;
+    }
+}
+int main() {
+    char text[100];
+    int k;
+    printf("Enter a string to encrypt: ");
+    fgets(text, sizeof(text), stdin);
+    printf("Enter shift (1-25): ");
+    scanf("%d", &k);
+    if (k < 1 || k > 25) {
+        printf("Shift value must be between 1 and 25.\n");
+        return 1;
+    }
+    char encryptedText[100];
+    strcpy(encryptedText, text);
+    encrypt(encryptedText, k);
+    printf("Encrypted string: %s", encryptedText);
+    char decryptedText[100];
+    strcpy(decryptedText, encryptedText); 
+    decrypt(decryptedText, k);
+    printf("Decrypted string: %s", decryptedText);
+    return 0;
+}
