@@ -1,0 +1,32 @@
+#include <stdio.h>
+#define ALPHABET_SIZE 26
+int modInverse(int a, int m) {
+    for (int x = 1; x < m; x++) {
+        if ((a * x) % m == 1)
+            return x;
+    }
+    return -1; 
+}
+void breakAffineCipher(int C1, int P1, int C2, int P2) {
+    int a, b;
+    for (a = 1; a < ALPHABET_SIZE; a++) {
+        if (modInverse(a, ALPHABET_SIZE) == -1) {
+            continue;
+        }        
+        for (b = 0; b < ALPHABET_SIZE; b++) {
+            if ((a * P1 + b) % ALPHABET_SIZE == C1) {
+                if ((a * P2 + b) % ALPHABET_SIZE == C2) {
+                    printf("Found solution: a = %d, b = %d\n", a, b);
+                    return;
+                }
+            }
+        }
+    }
+    printf("No solution found\n");
+}
+int main() {
+    int C1 = 1, P1 = 4; 
+    int C2 = 20, P2 = 19; 
+    breakAffineCipher(C1, P1, C2, P2);
+    return 0;
+}
