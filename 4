@@ -1,0 +1,57 @@
+#include <stdio.h>
+#include <ctype.h>
+int modInverse(int a, int m) {
+    for (int x = 1; x < m; x++) {
+        if ((a * x) % m == 1)
+            return x;
+    }
+    return -1; 
+}
+char affineEncryptChar(char p, int a, int b) {
+    if (isalpha(p)) {
+        char base = isupper(p) ? 'A' : 'a';
+        return (char)((a * (p - base) + b) % 26 + base);
+    }
+    return p; 
+}
+char affineDecryptChar(char c, int a, int b) {
+    if (isalpha(c)) {
+        char base = isupper(c) ? 'A' : 'a';
+        int a_inv = modInverse(a, 26);
+        if (a_inv == -1) {
+            printf("Decryption not possible. 'a' has no modular inverse under 26.\n");
+            return '\0';
+        }
+        return (char)((a_inv * ((c - base - b + 26) % 26)) % 26 + base);
+    }
+    return c; 
+}
+void affineEncrypt(char plaintext[], char ciphertext[], int a, int b) {
+    for (int i = 0; plaintext[i] != '\0'; i++) {
+        ciphertext[i] = affineEncryptChar(plaintext[i], a, b);
+    }
+}
+void affineDecrypt(char ciphertext[], char plaintext[], int a, int b) {
+    for (int i = 0; ciphertext[i] != '\0'; i++) {
+        plaintext[i] = affineDecryptChar(ciphertext[i], a, b);
+    }
+}
+int main() {
+    char plaintext[100], ciphertext[100];
+    int a, b;
+    printf("Enter the value of 'a' (coprime to 26): ");
+    scanf("%d", &a);
+    printf("Enter the value of 'b': ");
+    scanf("%d", &b);
+    if (modInverse(a, 26) == -1) {
+        printf("'a' is not coprime to 26. Encryption is not possible.\n");
+        return 1;
+    }
+    printf("Enter the plaintext: ");
+    scanf("%s", plaintext);
+    affineEncrypt(plaintext, ciphertext, a, b);
+    printf("Ciphertext: %s\n", ciphertext);
+    affineDecrypt(ciphertext, plaintext, a, b);
+    printf("Decrypted text: %s\n", plaintext);
+    return 0;
+}
