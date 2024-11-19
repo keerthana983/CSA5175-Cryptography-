@@ -1,0 +1,59 @@
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+#define ALPHABET_SIZE 26
+void generate_cipher_alphabet(const char *keyword, char cipher_alphabet[]) {
+    int used[ALPHABET_SIZE] = {0};  
+    int k_len = strlen(keyword);
+    int idx = 0;
+    for (int i = 0; i < k_len; i++) {
+        char ch = toupper(keyword[i]);
+        if (!used[ch - 'A']) {
+            cipher_alphabet[idx++] = ch;
+            used[ch - 'A'] = 1;
+        }
+    }
+    for (char ch = 'A'; ch <= 'Z'; ch++) {
+        if (!used[ch - 'A']) {
+            cipher_alphabet[idx++] = ch;
+        }
+    }
+}
+void encrypt(const char *plaintext, const char *cipher_alphabet, char *ciphertext) {
+    for (int i = 0; plaintext[i] != '\0'; i++) {
+        char ch = toupper(plaintext[i]);
+        if (ch >= 'A' && ch <= 'Z') {
+            ciphertext[i] = cipher_alphabet[ch - 'A'];
+        } else {
+            ciphertext[i] = plaintext[i]; 
+        }
+    }
+}
+void decrypt(const char *ciphertext, const char *cipher_alphabet, char *decrypted_text) {
+    for (int i = 0; ciphertext[i] != '\0'; i++) {
+        char ch = toupper(ciphertext[i]);
+        if (ch >= 'A' && ch <= 'Z') {
+            for (int j = 0; j < ALPHABET_SIZE; j++) {
+                if (cipher_alphabet[j] == ch) {
+                    decrypted_text[i] = 'A' + j;
+                    break;
+                }
+            }
+        } else {
+            decrypted_text[i] = ciphertext[i];  
+        }
+    }
+}
+int main() {
+    char keyword[] = "CIPHER";  
+    char plaintext[] = "HELLO WORLD";  
+    char cipher_alphabet[ALPHABET_SIZE];  
+    char ciphertext[100];  
+    char decrypted_text[100]; 
+    generate_cipher_alphabet(keyword, cipher_alphabet);
+    encrypt(plaintext, cipher_alphabet, ciphertext);
+    printf("Ciphertext: %s\n", ciphertext);
+    decrypt(ciphertext, cipher_alphabet, decrypted_text);
+    printf("Decrypted Text: %s\n", decrypted_text);
+    return 0;
+}
