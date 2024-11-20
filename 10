@@ -1,0 +1,74 @@
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+#define SIZE 5
+char matrix[SIZE][SIZE] = {
+    {'M', 'F', 'H', 'I', 'K'},
+    {'U', 'N', 'O', 'P', 'Q'},
+    {'Z', 'V', 'W', 'X', 'Y'},
+    {'E', 'L', 'A', 'R', 'G'},
+    {'D', 'S', 'T', 'B', 'C'}
+};
+void findPosition(char ch, int *row, int *col) {
+    for (int i = 0; i < SIZE; i++) {
+        for (int j = 0; j < SIZE; j++) {
+            if (matrix[i][j] == ch) {
+                *row = i;
+                *col = j;
+                return;
+            }
+        }
+    }
+}
+void prepareText(char *text, char *preparedText) {
+    int j = 0;
+    for (int i = 0; text[i] != '\0'; i++) {
+        if (isalpha(text[i])) {
+            char ch = toupper(text[i]);
+            if (i > 0 && preparedText[j-1] == ch) {
+                preparedText[j++] = 'X'; 
+            }
+            preparedText[j++] = ch;
+        }
+    }
+    if (j % 2 != 0) {
+        preparedText[j++] = 'X'; 
+    }
+    preparedText[j] = '\0';
+}
+void encryptDigraph(char a, char b, char *encryptedA, char *encryptedB) {
+    int row1, col1, row2, col2;
+    findPosition(a, &row1, &col1);
+    findPosition(b, &row2, &col2);
+    if (row1 == row2) {
+        *encryptedA = matrix[row1][(col1 + 1) % SIZE];
+        *encryptedB = matrix[row2][(col2 + 1) % SIZE];
+    }
+    else if (col1 == col2) {
+        *encryptedA = matrix[(row1 + 1) % SIZE][col1];
+        *encryptedB = matrix[(row2 + 1) % SIZE][col2];
+    }
+    else {
+        *encryptedA = matrix[row1][col2];
+        *encryptedB = matrix[row2][col1];
+    }
+}
+void encryptMessage(char *plaintext, char *ciphertext) {
+    char preparedText[100];
+    prepareText(plaintext, preparedText);
+    int k = 0;
+    for (int i = 0; preparedText[i] != '\0'; i += 2) {
+        char a = preparedText[i];
+        char b = preparedText[i + 1];
+        encryptDigraph(a, b, &ciphertext[k], &ciphertext[k + 1]);
+        k += 2;
+    }
+    ciphertext[k] = '\0';
+}
+int main() {
+    char plaintext[] = "Must see you over Cadogan West. Coming at once.";
+    char ciphertext[100];
+    encryptMessage(plaintext, ciphertext);
+    printf("Encrypted Text: %s\n", ciphertext);
+    return 0;
+}
