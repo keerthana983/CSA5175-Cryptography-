@@ -1,0 +1,18 @@
+#include <stdio.h>
+#include <math.h>
+unsigned long long factorial(int n) {
+    unsigned long long fact = 1;
+    for (int i = 1; i <= n; i++) {
+        fact *= i;
+    }
+    return fact;
+}
+int main() {
+    int letters = 25;
+    unsigned long long fact = factorial(letters);
+    double log2_fact = log2((double)fact);
+    printf("25! in powers of 2 is approximately 2^%.0f\n", log2_fact);
+    int unique_keys_power = 49;
+    printf("Taking duplicates into account, effective unique keys are approximately 2^%d\n", unique_keys_power);
+    return 0;
+}
