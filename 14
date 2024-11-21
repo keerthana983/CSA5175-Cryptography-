@@ -1,0 +1,74 @@
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+#define ALPHABET_SIZE 26
+int charToNum(char c) {
+    return tolower(c) - 'a';
+}
+char numToChar(int num) {
+    return (char)(num + 'a');
+}
+void encrypt(char* plaintext, int* keyStream, int keyStreamLength, char* ciphertext) {
+    int i;
+    int keyIndex = 0;
+    int plaintextLength = strlen(plaintext);
+    for (i = 0; i < plaintextLength; i++) {
+        if (isalpha(plaintext[i])) {
+            int pNum = charToNum(plaintext[i]);
+            int kNum = keyStream[keyIndex % keyStreamLength];
+            int cNum = (pNum + kNum) % ALPHABET_SIZE;
+            ciphertext[i] = numToChar(cNum);
+            keyIndex++;
+        } else {
+            ciphertext[i] = plaintext[i];
+        }
+    }
+    ciphertext[i] = '\0';
+}
+void decrypt(char* ciphertext, int* keyStream, int keyStreamLength, char* decryptedText) {
+    int i;
+    int keyIndex = 0;
+    int ciphertextLength = strlen(ciphertext);
+    for (i = 0; i < ciphertextLength; i++) {
+        if (isalpha(ciphertext[i])) {
+            int cNum = charToNum(ciphertext[i]);
+            int kNum = keyStream[keyIndex % keyStreamLength];
+            int pNum = (cNum - kNum + ALPHABET_SIZE) % ALPHABET_SIZE;
+            decryptedText[i] = numToChar(pNum);
+            keyIndex++;
+        } else {
+            decryptedText[i] = ciphertext[i];
+        }
+    }
+    decryptedText[i] = '\0';
+}
+int main() {
+    char plaintext[] = "send more money";
+    int keyStream[] = {9, 0, 1, 7, 23, 15, 21, 14, 11, 11, 2, 8, 9};
+    int keyStreamLength = sizeof(keyStream) / sizeof(keyStream[0]);
+    char ciphertext[100];
+    encrypt(plaintext, keyStream, keyStreamLength, ciphertext);
+    printf("Ciphertext: %s\n", ciphertext);
+    char decryptedText[100];
+    decrypt(ciphertext, keyStream, keyStreamLength, decryptedText);
+    printf("Decrypted message: %s\n", decryptedText);
+    char targetPlaintext[] = "cash not needed";
+    int targetKeyStream[100];
+    int targetKeyStreamLength = strlen(targetPlaintext);
+    for (int i = 0; i < targetKeyStreamLength; i++) {
+        if (isalpha(ciphertext[i]) && isalpha(targetPlaintext[i])) {
+            int cNum = charToNum(ciphertext[i]);
+            int pNum = charToNum(targetPlaintext[i]);
+            targetKeyStream[i] = (cNum - pNum + ALPHABET_SIZE) % ALPHABET_SIZE;
+        } else {
+            targetKeyStream[i] = 0;
+        }
+    }
+    printf("Key Stream to decrypt ciphertext to 'cash not needed':\n");
+    for (int i = 0; i < targetKeyStreamLength; i++) {
+        printf("%d ", targetKeyStream[i]);
+    }
+    printf("\n");
+    return 0;
+}
+
