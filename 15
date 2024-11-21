@@ -1,0 +1,82 @@
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+#define ALPHABET_SIZE 26
+#define MAX_TEXT_LENGTH 1000
+int englishFrequency[] = {12, 9, 8, 6, 15, 2, 2, 6, 7, 0, 0, 4, 2, 6, 6, 7, 3, 2, 6, 6, 0, 2, 1, 1, 0, 0};
+int charToNum(char c) {
+    return tolower(c) - 'a';
+}
+char numToChar(int num) {
+    return (char)(num + 'a');
+}
+void calculateFrequency(char* text, int* frequency) {
+    int length = strlen(text);
+    for (int i = 0; i < length; i++) {
+        if (isalpha(text[i])) {
+            frequency[charToNum(text[i])]++;
+        }
+    }
+}
+void applyShift(char* text, int shift, char* result) {
+    int i = 0;
+    while (text[i] != '\0') {
+        if (isalpha(text[i])) {
+            result[i] = numToChar((charToNum(text[i]) + shift) % ALPHABET_SIZE);
+        } else {
+            result[i] = text[i];
+        }
+        i++;
+    }
+    result[i] = '\0';
+}
+int calculateFrequencyScore(int* freq1, int* freq2) {
+    int score = 0;
+    for (int i = 0; i < ALPHABET_SIZE; i++) {
+        score += (freq1[i] - freq2[i]) * (freq1[i] - freq2[i]);
+    }
+    return score;
+}
+void letterFrequencyAttack(char* ciphertext, int topN) {
+    int ciphertextFrequency[ALPHABET_SIZE] = {0};
+    calculateFrequency(ciphertext, ciphertextFrequency);
+    int bestShifts[topN];
+    int bestScores[topN];
+    char potentialPlaintexts[topN][MAX_TEXT_LENGTH];
+    for (int i = 0; i < topN; i++) {
+        bestScores[i] = 1000000;
+    }
+    for (int shift = 0; shift < ALPHABET_SIZE; shift++) {
+        int shiftedFrequency[ALPHABET_SIZE] = {0};
+        for (int i = 0; i < ALPHABET_SIZE; i++) {
+            shiftedFrequency[i] = ciphertextFrequency[(i + shift) % ALPHABET_SIZE];
+        }
+        int score = calculateFrequencyScore(shiftedFrequency, englishFrequency);
+        for (int i = 0; i < topN; i++) {
+            if (score < bestScores[i]) {
+                for (int j = topN - 1; j > i; j--) {
+                    bestScores[j] = bestScores[j - 1];
+                    bestShifts[j] = bestShifts[j - 1];
+                    strcpy(potentialPlaintexts[j], potentialPlaintexts[j - 1]);
+                }
+                bestScores[i] = score;
+                bestShifts[i] = shift;
+                applyShift(ciphertext, shift, potentialPlaintexts[i]);
+                break;
+            }
+        }
+    }
+    printf("Top %d possible plaintexts:\n", topN);
+    for (int i = 0; i < topN; i++) {
+        printf("Shift: %d, Score: %d\n", bestShifts[i], bestScores[i]);
+        printf("Plaintext: %s\n\n", potentialPlaintexts[i]);
+    }
+}
+int main() {
+    char ciphertext[] = "rjmvg lz rjzvu";
+    int topN;
+    printf("Enter the number of top possible plaintexts to show: ");
+    scanf("%d", &topN);
+    letterFrequencyAttack(ciphertext, topN);
+    return 0;
+}
