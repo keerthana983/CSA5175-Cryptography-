@@ -1,72 +1,84 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
-const char english_freq[] = "ETAOINSHRDLCUMWFGYPBVKJXQZ";
-void compute_frequency(const char *ciphertext, int freq[]);
-void sort_by_frequency(int freq[], char letters[]);
-void decrypt_with_mapping(const char *ciphertext, const char *mapping, char *plaintext);
-void display_top_plaintexts(const char *ciphertext, const char *sorted_letters, int top_n);
+#include <stdint.h>
+const int IP[64] = { ... };        
+const int IP_INV[64] = { ... };    
+const int PC1[56] = { ... };       
+const int PC2[48] = { ... };       
+const int E[48] = { ... };         
+const int SBOX[8][4][16] = { ... }; 
+const int P[32] = { ... };         
+const int SHIFT_SCHEDULE[16] = {1, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 1}; 
+void permute(const uint8_t *input, uint8_t *output, const int *table, int n);
+void key_generation(uint64_t key, uint48_t round_keys[16]);
+uint32_t feistel(uint32_t R, uint48_t key);
+uint64_t des_decrypt(uint64_t ciphertext, uint48_t round_keys[16]);
 int main() {
-    char ciphertext[1000];
-    int top_n;
-    printf("Enter the ciphertext: ");
-    fgets(ciphertext, sizeof(ciphertext), stdin);
-    ciphertext[strcspn(ciphertext, "\n")] = '\0'; 
-    printf("Enter the number of top possible plaintexts to display: ");
-    scanf("%d", &top_n);
-    int freq[26] = {0};
-    compute_frequency(ciphertext, freq);
-    char sorted_letters[26];
-    sort_by_frequency(freq, sorted_letters);
-    display_top_plaintexts(ciphertext, sorted_letters, top_n);
+    uint64_t key;         
+    uint64_t ciphertext;  
+    uint48_t round_keys[16];
+    printf("Enter 64-bit key in hexadecimal (e.g., 0x133457799BBCDFF1): ");
+    scanf("%lx", &key);
+    printf("Enter 64-bit ciphertext in hexadecimal (e.g., 0x85E813540F0AB405): ");
+    scanf("%lx", &ciphertext);
+    key_generation(key, round_keys);
+    uint64_t plaintext = des_decrypt(ciphertext, round_keys);
+    printf("Decrypted plaintext: 0x%016lx\n", plaintext);
     return 0;
 }
-void compute_frequency(const char *ciphertext, int freq[]) {
-    for (int i = 0; ciphertext[i] != '\0'; i++) {
-        if (isalpha(ciphertext[i])) {
-            freq[toupper(ciphertext[i]) - 'A']++;
-        }
+void permute(const uint8_t *input, uint8_t *output, const int *table, int n) {
+    for (int i = 0; i < n; i++) {
+        int bit = (input[table[i] - 1] >> (7 - (table[i] - 1) % 8)) & 1;
+        output[i / 8] |= bit << (7 - i % 8);
     }
 }
-void sort_by_frequency(int freq[], char letters[]) {
-    for (int i = 0; i < 26; i++) {
-        letters[i] = 'A' + i;
+void key_generation(uint64_t key, uint48_t round_keys[16]) {
+    uint64_t permuted_key = 0;
+    uint32_t C = 0, D = 0;
+    permute((uint8_t *)&key, (uint8_t *)&permuted_key, PC1, 56);
+    C = (permuted_key >> 28) & 0x0FFFFFFF;
+    D = permuted_key & 0x0FFFFFFF;
+    for (int i = 0; i < 16; i++) {
+        C = (C << SHIFT_SCHEDULE[i]) | (C >> (28 - SHIFT_SCHEDULE[i]));
+        D = (D << SHIFT_SCHEDULE[i]) | (D >> (28 - SHIFT_SCHEDULE[i]));
+        C &= 0x0FFFFFFF;
+        D &= 0x0FFFFFFF;
+        uint64_t combined = ((uint64_t)C << 28) | D;
+        permute((uint8_t *)&combined, (uint8_t *)&round_keys[i], PC2, 48);
     }
-    for (int i = 0; i < 25; i++) {
-        for (int j = i + 1; j < 26; j++) {
-            if (freq[i] < freq[j]) {
-                int temp_freq = freq[i];
-                freq[i] = freq[j];
-                freq[j] = temp_freq;
-                char temp_letter = letters[i];
-                letters[i] = letters[j];
-                letters[j] = temp_letter;
-            }
-        }
+    for (int i = 0; i < 8; i++) {
+        uint48_t temp = round_keys[i];
+        round_keys[i] = round_keys[15 - i];
+        round_keys[15 - i] = temp;
     }
 }
-void decrypt_with_mapping(const char *ciphertext, const char *mapping, char *plaintext) {
-    for (int i = 0; ciphertext[i] != '\0'; i++) {
-        if (isalpha(ciphertext[i])) {
-            int is_lower = islower(ciphertext[i]);
-            char c = toupper(ciphertext[i]);
-            char decrypted = mapping[c - 'A'];
-            plaintext[i] = is_lower ? tolower(decrypted) : decrypted;
-        } else {
-            plaintext[i] = ciphertext[i];
-        }
+uint32_t feistel(uint32_t R, uint48_t key) {
+    uint64_t expanded_R = 0;
+    permute((uint8_t *)&R, (uint8_t *)&expanded_R, E, 48);
+    expanded_R ^= key;
+    uint32_t substituted = 0;
+    for (int i = 0; i < 8; i++) {
+        int row = ((expanded_R >> (6 * i + 5)) & 1) | ((expanded_R >> (6 * i)) & 2);
+        int col = (expanded_R >> (6 * i + 1)) & 0xF;
+        substituted |= SBOX[i][row][col] << (4 * (7 - i));
     }
-    plaintext[strlen(ciphertext)] = '\0';
+    uint32_t permuted = 0;
+    permute((uint8_t *)&substituted, (uint8_t *)&permuted, P, 32);
+    return permuted;
 }
-void display_top_plaintexts(const char *ciphertext, const char *sorted_letters, int top_n) {
-    char plaintext[1000];
-    char mapping[26];
-    for (int i = 0; i < top_n && i < 26; i++) {
-        for (int j = 0; j < 26; j++) {
-            mapping[sorted_letters[j] - 'A'] = english_freq[(i + j) % 26];
-        }
-        decrypt_with_mapping(ciphertext, mapping, plaintext);
-        printf("Possible plaintext %d:\n%s\n\n", i + 1, plaintext);
+uint64_t des_decrypt(uint64_t ciphertext, uint48_t round_keys[16]) {
+    uint64_t permuted = 0;
+    permute((uint8_t *)&ciphertext, (uint8_t *)&permuted, IP, 64);
+
+    uint32_t L = (permuted >> 32) & 0xFFFFFFFF;
+    uint32_t R = permuted & 0xFFFFFFFF;
+    for (int i = 0; i < 16; i++) {
+        uint32_t temp = R;
+        R = L ^ feistel(R, round_keys[i]);
+        L = temp;
     }
+    uint64_t combined = ((uint64_t)R << 32) | L;
+    uint64_t plaintext = 0;
+    permute((uint8_t *)&combined, (uint8_t *)&plaintext, IP_INV, 64);
+    return plaintext;
 }
