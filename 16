@@ -1,0 +1,75 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+const char english_freq[] = "ETAOINSHRDLCUMWFGYPBVKJXQZ";
+void compute_frequency(const char *ciphertext, int freq[]);
+void sort_by_frequency(int freq[], char letters[]);
+void decrypt_with_mapping(const char *ciphertext, const char *mapping, char *plaintext);
+void display_top_plaintexts(const char *ciphertext, const char *sorted_letters, int top_n);
+int main() {
+    char ciphertext[1000];
+    int top_n;
+    printf("Enter the ciphertext: ");
+    fgets(ciphertext, sizeof(ciphertext), stdin);
+    ciphertext[strcspn(ciphertext, "\n")] = '\0';
+    printf("Enter the number of top possible plaintexts to display: ");
+    scanf("%d", &top_n);
+    int freq[26] = {0};
+    compute_frequency(ciphertext, freq);
+    char sorted_letters[26];
+    sort_by_frequency(freq, sorted_letters);
+    display_top_plaintexts(ciphertext, sorted_letters, top_n);
+
+    return 0;
+}
+void compute_frequency(const char *ciphertext, int freq[]) {
+    for (int i = 0; ciphertext[i] != '\0'; i++) {
+        if (isalpha(ciphertext[i])) {
+            freq[toupper(ciphertext[i]) - 'A']++;
+        }
+    }
+}
+void sort_by_frequency(int freq[], char letters[]) {
+    for (int i = 0; i < 26; i++) {
+        letters[i] = 'A' + i;
+    }
+    for (int i = 0; i < 25; i++) {
+        for (int j = i + 1; j < 26; j++) {
+            if (freq[i] < freq[j]) {
+                int temp_freq = freq[i];
+                freq[i] = freq[j];
+                freq[j] = temp_freq;
+                char temp_letter = letters[i];
+                letters[i] = letters[j];
+                letters[j] = temp_letter;
+            }
+        }
+    }
+}
+
+void decrypt_with_mapping(const char *ciphertext, const char *mapping, char *plaintext) {
+    for (int i = 0; ciphertext[i] != '\0'; i++) {
+        if (isalpha(ciphertext[i])) {
+            int is_lower = islower(ciphertext[i]);
+            char c = toupper(ciphertext[i]);
+            char decrypted = mapping[c - 'A'];
+            plaintext[i] = is_lower ? tolower(decrypted) : decrypted;
+        } else {
+            plaintext[i] = ciphertext[i];
+        }
+    }
+    plaintext[strlen(ciphertext)] = '\0';
+}
+void display_top_plaintexts(const char *ciphertext, const char *sorted_letters, int top_n) {
+    char plaintext[1000];
+    char mapping[26];
+    for (int i = 0; i < top_n && i < 26; i++) {
+        for (int j = 0; j < 26; j++) {
+            mapping[sorted_letters[j] - 'A'] = english_freq[(i + j) % 26];
+        }
+        decrypt_with_mapping(ciphertext, mapping, plaintext);
+        printf("Possible plaintext %d:\n%s\n\n", i + 1, plaintext);
+    }
+}
+
