@@ -1,0 +1,80 @@
+#include <stdio.h>
+#include <string.h>
+#define KEY_SIZE 24
+#define BLOCK_SIZE 8
+void des_encrypt(char *block, char *key);
+void des_decrypt(char *block, char *key);
+void cbc_encrypt(char *plaintext, char *ciphertext, char *key, char *iv);
+void cbc_decrypt(char *ciphertext, char *plaintext, char *key, char *iv);
+int main() {
+    char plaintext[] = "HelloWorld";
+    char key[] = "012345678901234567890123"; 
+    char iv[] = "01234567"; 
+    char ciphertext[16];
+    cbc_encrypt(plaintext, ciphertext, key, iv);
+    printf("Ciphertext: %s\n", ciphertext);
+    char decrypted[16];
+    cbc_decrypt(ciphertext, decrypted, key, iv);
+    printf("Decrypted: %s\n", decrypted);
+    return 0;
+}
+void des_encrypt(char *block, char *key) {
+    char temp[8];
+    temp[0] = block[0] ^ key[0];
+    temp[1] = block[1] ^ key[1];
+    temp[2] = block[2] ^ key[2];
+    temp[3] = block[3] ^ key[3];
+    temp[4] = block[4] ^ key[4];
+    temp[5] = block[5] ^ key[5];
+    temp[6] = block[6] ^ key[6];
+    temp[7] = block[7] ^ key[7];
+    memcpy(block, temp, 8);
+}
+void des_decrypt(char *block, char *key) {
+    char temp[8];
+    temp[0] = block[0] ^ key[0];
+    temp[1] = block[1] ^ key[1];
+    temp[2] = block[2] ^ key[2];
+    temp[3] = block[3] ^ key[3];
+    temp[4] = block[4] ^ key[4];
+    temp[5] = block[5] ^ key[5];
+    temp[6] = block[6] ^ key[6];
+    temp[7] = block[7] ^ key[7];
+    memcpy(block, temp, 8);
+}
+void cbc_encrypt(char *plaintext, char *ciphertext, char *key, char *iv) {
+    char block[BLOCK_SIZE];
+    char prev_block[BLOCK_SIZE];
+    memcpy(prev_block, iv, BLOCK_SIZE);
+    for (int i = 0; i < strlen(plaintext); i += BLOCK_SIZE) {
+        memcpy(block, plaintext + i, BLOCK_SIZE);
+        for (int j = 0; j < BLOCK_SIZE; j++) {
+            block[j] ^= prev_block[j];
+        }
+        des_encrypt(block, key);
+        des_decrypt(block, key + 8);
+        des_encrypt(block, key + 16);
+        memcpy(prev_block, block, BLOCK_SIZE);
+
+        memcpy(ciphertext + i, block, BLOCK_SIZE);
+    }
+}
+void cbc_decrypt(char *ciphertext, char *plaintext, char *key, char *iv) {
+    char block[BLOCK_SIZE];
+    char prev_block[BLOCK_SIZE];
+    memcpy(prev_block, iv, BLOCK_SIZE);
+    for (int i = 0; i < strlen(ciphertext); i += BLOCK_SIZE) {
+        memcpy(block, ciphertext + i, BLOCK_SIZE);
+        des_decrypt(block, key + 16);
+        des_encrypt(block, key + 8);
+        des_decrypt(block, key);
+        for (int j = 0; j < BLOCK_SIZE; j++) {
+            block[j] ^= prev_block[j];
+        }
+        memcpy(prev_block, ciphertext + i, BLOCK_SIZE);
+
+        memcpy(plaintext + i, block, BLOCK_SIZE);
+    }
+}
+
+
