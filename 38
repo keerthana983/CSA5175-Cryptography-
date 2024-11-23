@@ -1,0 +1,109 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#define SIZE 2 
+void printMatrix(int mat[SIZE][SIZE]) {
+    for (int i = 0; i < SIZE; i++) {
+        for (int j = 0; j < SIZE; j++) {
+            printf("%d ", mat[i][j]);
+        }
+        printf("\n");
+    }
+}
+int modInverse(int a, int m) {
+    for (int x = 1; x < m; x++) {
+        if ((a * x) % m == 1) {
+            return x;
+        }
+    }
+    return -1;  
+}
+int determinant(int mat[SIZE][SIZE]) {
+    return (mat[0][0] * mat[1][1] - mat[0][1] * mat[1][0]) % 26;
+}
+int inverseMatrix(int mat[SIZE][SIZE], int invMat[SIZE][SIZE]) {
+    int det = determinant(mat);
+    int detInv = modInverse(det, 26);
+    if (detInv == -1) {
+        printf("Matrix is not invertible modulo 26.\n");
+        return 0;
+    }
+    invMat[0][0] = (detInv * mat[1][1]) % 26;
+    invMat[0][1] = (-detInv * mat[0][1]) % 26;
+    invMat[1][0] = (-detInv * mat[1][0]) % 26;
+    invMat[1][1] = (detInv * mat[0][0]) % 26;
+    for (int i = 0; i < SIZE; i++) {
+        for (int j = 0; j < SIZE; j++) {
+            if (invMat[i][j] < 0) {
+                invMat[i][j] += 26;
+            }
+        }
+    }
+    return 1;
+}
+void matrixMultiply(int A[SIZE][SIZE], int B[SIZE][SIZE], int result[SIZE][SIZE]) {
+    for (int i = 0; i < SIZE; i++) {
+        for (int j = 0; j < SIZE; j++) {
+            result[i][j] = 0;
+            for (int k = 0; k < SIZE; k++) {
+                result[i][j] += (A[i][k] * B[k][j]) % 26;
+            }
+            result[i][j] %= 26;
+        }
+    }
+}
+void hillEncrypt(char* plaintext, int key[SIZE][SIZE], char* ciphertext) {
+    int len = strlen(plaintext);
+    for (int i = 0; i < len; i += SIZE) {
+        int pt[SIZE];
+        for (int j = 0; j < SIZE; j++) {
+            pt[j] = plaintext[i + j] - 'A'; 
+        }
+        int ct[SIZE] = {0};
+        for (int j = 0; j < SIZE; j++) {
+            for (int k = 0; k < SIZE; k++) {
+                ct[j] += (key[j][k] * pt[k]) % 26;
+            }
+            ct[j] %= 26;
+        }
+        for (int j = 0; j < SIZE; j++) {
+            ciphertext[i + j] = ct[j] + 'A';  
+        }
+    }
+    ciphertext[len] = '\0';
+}
+void solveKeyMatrix(char* plaintext, char* ciphertext, int key[SIZE][SIZE]) {
+    int pt[SIZE][SIZE], ct[SIZE][SIZE];
+        for (int i = 0; i < SIZE; i++) {
+        pt[0][i] = plaintext[i] - 'A';
+        ct[0][i] = ciphertext[i] - 'A';
+    }
+    for (int i = SIZE; i < SIZE * SIZE; i++) {
+        pt[1][i % SIZE] = plaintext[i] - 'A';
+        ct[1][i % SIZE] = ciphertext[i] - 'A';
+    }
+    int ptInverse[SIZE][SIZE];
+    if (!inverseMatrix(pt, ptInverse)) {
+        printf("Cannot find inverse of the plaintext matrix.\n");
+        return;
+    }
+    int temp[SIZE][SIZE];
+    matrixMultiply(ct, ptInverse, temp);
+    for (int i = 0; i < SIZE; i++) {
+        for (int j = 0; j < SIZE; j++) {
+            key[i][j] = temp[i][j];
+        }
+    }
+}
+int main() {
+    char plaintext[] = "GDFD";  
+    char ciphertext[] = "SWQF";  
+    int key[SIZE][SIZE];
+        solveKeyMatrix(plaintext, ciphertext, key);
+    printf("Recovered key matrix:\n");
+    printMatrix(key);
+        char encryptedText[5];
+    hillEncrypt(plaintext, key, encryptedText);
+    printf("Encrypted text: %s\n", encryptedText);  
+    return 0;
+}
